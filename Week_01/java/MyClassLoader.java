@@ -1,14 +1,9 @@
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.WritableByteChannel;
 
 @Slf4j
 public class MyClassLoader extends ClassLoader {
@@ -28,9 +23,7 @@ public class MyClassLoader extends ClassLoader {
         try {
             File file = new File(path);
             byte[] bytes = getClassByte(file);
-            for (int i = 0; i < bytes.length; i++) {
-                bytes[i] = (byte) (new Byte((byte) 255) - bytes[i]);
-            }
+            decodeByte(bytes);
             aClass = defineClass(name, bytes, 0, bytes.length);
         } catch (IOException e) {
             e.printStackTrace();
@@ -38,22 +31,16 @@ public class MyClassLoader extends ClassLoader {
         return aClass;
     }
 
-    private byte[] getClassByte(File file) throws IOException {
-        FileInputStream inputStream = new FileInputStream(file);
-        FileChannel channel = inputStream.getChannel();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        WritableByteChannel writableByteChannel = Channels.newChannel(outputStream);
-        ByteBuffer allocate = ByteBuffer.allocate(512);
-        while (true) {
-            int i = channel.read(allocate);
-            if (i == 0 || i == -1) {
-                break;
-            }
-            allocate.flip();
-            writableByteChannel.write(allocate);
-            allocate.clear();
+    private void decodeByte(byte[] bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = (byte) (new Byte((byte) 255) - bytes[i]);
         }
-        inputStream.close();
-        return outputStream.toByteArray();
+    }
+
+    private byte[] getClassByte(File file) throws IOException {
+        int length = (int) file.length();
+        byte[] bytes = new byte[length];
+        new FileInputStream(file).read(bytes);
+        return bytes;
     }
 }
